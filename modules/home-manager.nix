@@ -42,6 +42,8 @@ let
     ${optionalString (config.sops.ageKeyFile != null) ''
       $DRY_RUN_CMD export SOPS_AGE_KEY_FILE=${escapeShellArg config.sops.ageKeyFile}
     ''}
+    export SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg
+
     ${concatStringsSep "\n" (mapAttrsToList (name: secret: mkSecretScript { inherit name secret; }) secrets)}
   '';
 in

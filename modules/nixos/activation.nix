@@ -57,6 +57,8 @@ let
     ${optionalString (config.sops.ageKeyFile != null) ''
       export SOPS_AGE_KEY_FILE=${escapeShellArg config.sops.ageKeyFile}
     ''}
+    export SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg
+
     ${concatStringsSep "\n" (mapAttrsToList (name: secret: mkSecretScript { inherit name secret; }) secrets)}
   '';
 in
@@ -114,8 +116,8 @@ in
     ];
 
     systemd.tmpfiles.rules = [
-      "z ${escapeShellArg cfg.storagePath} 0750 root ${toString config.ids.gids.keys} -"
-      "z ${escapeShellArg (cfg.storagePath + "/*")} 0750 root ${toString config.ids.gids.keys} -"
+      "z ${escapeShellArg cfg.storagePath} 0750 root ${builtins.toString config.ids.gids.keys} -"
+      "z ${escapeShellArg (cfg.storagePath + "/*")} 0750 root ${builtins.toString config.ids.gids.keys} -"
       "e ${escapeShellArg cfg.storagePath} - - - 0 -"
       "x ${escapeShellArg generationStoragePath} - - - - -"
     ];

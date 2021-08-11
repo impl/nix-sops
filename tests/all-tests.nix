@@ -12,8 +12,9 @@ in
       inherit self inputs pkgs system;
     } // args);
   in pkgs.lib.mapAttrs (name: file: mkNixosTest file) {
-    nixosSimple = ./nixos/simple.nix;
     nixosBootSecrets = ./nixos/boot-secrets.nix;
+    nixosInstall = ./nixos/install.nix;
+    nixosSimple = ./nixos/simple.nix;
 
     homeManagerSimple = ./home-manager/simple.nix;
   }

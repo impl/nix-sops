@@ -3,15 +3,18 @@ import ./make-test.nix {
 
   configuration = { config, lib, pkgs, ... }: with lib;
   let
-    privateKey = pkgs.runCommand "private-key.asc" {} ''
+    # NB: This puts your age private key in the Nix store. You almost certainly
+    # do not want to do this. Read the documentation before you copy from this
+    # file!
+    testOnlyAgePrivateKey = pkgs.runCommand "test-only-age-private-key" {} ''
       ${pkgs.age}/bin/age-keygen -o $out
     '';
-    publicKey = pkgs.runCommand "public-key" {} ''
-      ${pkgs.age}/bin/age-keygen -o $out -y ${privateKey}
+    testOnlyAgePublicKey = pkgs.runCommand "test-only-age-public-key" {} ''
+      ${pkgs.age}/bin/age-keygen -o $out -y ${testOnlyAgePrivateKey}
     '';
-    sopsFile = pkgs.runCommand "secrets.yaml" { "SOPS_AGE_KEY_FILE" = privateKey; } ''
+    sopsFile = pkgs.runCommand "sops-secrets" { "SOPS_AGE_KEY_FILE" = testOnlyAgePrivateKey; } ''
       printf '{}' >$out
-      ${pkgs.sops}/bin/sops --encrypt --in-place --age "$(< ${publicKey})" $out
+      ${pkgs.sops}/bin/sops --encrypt --in-place --age "$(< ${testOnlyAgePublicKey})" $out
       ${pkgs.sops}/bin/sops --set '["test"] ${builtins.toJSON "foo"}' $out
     '';
   in
@@ -21,7 +24,7 @@ import ./make-test.nix {
         { file = sopsFile; key = ''["test"]''; }
       ];
     };
-    sops.ageKeyFile = privateKey;
+    sops.ageKeyFile = testOnlyAgePrivateKey;
 
     home.file."foo".source = config.sops.secrets."test".target;
   };
