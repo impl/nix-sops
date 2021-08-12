@@ -29,13 +29,16 @@ let
   };
 
   mkSecretScript = { name, secret }: let
-    target = escapeShellArg (getSecretStoragePath "secrets-${name}");
+    secretStoragePath = getSecretStoragePath "secrets-${name}";
+    targetI = escapeShellArg (secretStoragePath + ".i");
+    target = escapeShellArg secretStoragePath;
   in ''
-    $DRY_RUN_CMD truncate -s 0 ${target}
+    $DRY_RUN_CMD truncate -s 0 ${targetI}
     ${concatStringsSep "\n" (map (source: ''
-      $DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${target}
+      $DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
     '') secret.sources)}
-    $DRY_RUN_CMD chmod ${escapeShellArg secret.mode} ${target}
+    $DRY_RUN_CMD chmod ${escapeShellArg secret.mode} ${targetI}
+    $DRY_RUN_CMD mv -Tf ${targetI} ${target}
   '';
 
   mkSecretsScript = secrets: ''

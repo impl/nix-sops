@@ -57,25 +57,17 @@ in
   machine = { config, ... }: {
     imports = [ self.nixosModule ];
 
-    sops.ageKeyFile = "/run/keys/nix-sops.asc";
-
     # Set up a secret for this system key to be made available in the
     # initrd secrets.
-    sops.bootSecrets."system" = {
+    sops.bootSecrets."/nix-sops.asc" = {
       sources = [
         { file = sopsFile; key = ''["system"]''; }
       ];
+      availableInBootedSystem = true;
     };
 
-    # Add to initrd secrets.
-    boot.initrd.secrets = {
-      "/nix-sops.asc" = config.sops.bootSecrets."system".target;
-    };
-
-    # Copy to running system during early boot.
-    boot.initrd.postMountCommands = ''
-      cp /nix-sops.asc ${config.sops.ageKeyFile}
-    '';
+    # Use this secret to decrypt the rest of the secrets on the machine.
+    sops.ageKeyFile = config.sops.bootSecrets."/nix-sops.asc".target;
 
     sops.secrets."test" = {
       sources = [

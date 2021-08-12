@@ -20,7 +20,7 @@
   in { config, ... }: {
     imports = [ self.nixosModule ];
 
-    sops.bootSecrets."test" = {
+    sops.bootSecrets."/foo" = {
       sources = [
         { file = sopsFile; key = ''["test"]''; }
       ];
@@ -33,9 +33,6 @@
     boot.loader.grub = {
       enable = true;
       version = 2;
-    };
-    boot.initrd.secrets = {
-      "/key" = config.sops.bootSecrets."test".target;
     };
   };
 

@@ -3,8 +3,7 @@ let
   inherit (config) users;
   inherit (import ./lib.nix { inherit config lib; })
     generationStoragePath
-    getSecretStoragePath
-    initScript;
+    getSecretStoragePath;
 
   cfg = config.sops;
 
@@ -38,19 +37,24 @@ let
   };
 
   mkSecretScript = { name, secret }: let
-    target = escapeShellArg (getSecretStoragePath "secrets-${name}");
+    secretStoragePath = getSecretStoragePath "secrets-${name}";
+    targetDir = escapeShellArg (dirOf secretStoragePath);
+    targetI = escapeShellArg (secretStoragePath + ".i");
+    target = escapeShellArg secretStoragePath;
   in ''
-    truncate -s 0 ${target}
+    mkdir -p ${targetDir}
+    truncate -s 0 ${targetI}
     ${optionalString (secret.owner != "root") ''
-      chown ${escapeShellArg secret.owner} ${target}
+      chown ${escapeShellArg secret.owner} ${targetI}
     ''}
     ${optionalString (secret.group != users.users."root".group) ''
-      chgrp ${escapeShellArg secret.group} ${target}
+      chgrp ${escapeShellArg secret.group} ${targetI}
     ''}
     ${concatStringsSep "\n" (map (source: ''
-      ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${target}
+      ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
     '') secret.sources)}
-    chmod ${escapeShellArg secret.mode} ${target}
+    chmod ${escapeShellArg secret.mode} ${targetI}
+    mv -Tf ${targetI} ${target}
   '';
 
   mkSecretsScript = secrets: ''
@@ -68,16 +72,6 @@ in
       activationPhases = self.lib.activationPhasesOption;
 
       secrets = secretsOption;
-
-      storagePath = mkOption {
-        type = types.path;
-        description = ''
-          The runtime location to store secret data. This path will be mounted
-          as a ramfs filesystem.
-        '';
-        default = /run/sops;
-        example = /tmp/secrets;
-      };
 
       ageKeyFile = mkOption {
         type = types.nullOr types.path;
@@ -97,17 +91,14 @@ in
     }) cfg.secrets;
 
     sops.activationPhases = {
-      "forRoot" = { after = [ "specialfs" ]; before = [ "users" ]; };
-      "forUser" = { after = [ "specialfs" "users" "groups" ]; };
+      "forRoot" = { before = [ "users" ]; };
+      "forUser" = { after = [ "users" "groups" ]; };
     };
 
     system.activationScripts = mkMerge [
-      {
-        sopsInit = stringAfter [ "specialfs" ] initScript;
-      }
       (mkMerge (self.lib.mapActivationPhaseSecrets ({ activationPhase, secrets }: mkMerge [
         {
-          ${activationPhase.activationScriptsKey} = stringAfter ([ "sopsInit" ] ++ activationPhase.after) (mkSecretsScript secrets);
+          ${activationPhase.activationScriptsKey} = stringAfter ([ "specialfs" "sopsBootSecrets" ] ++ activationPhase.after) (mkSecretsScript secrets);
         }
         (mkMerge (map (dep: {
           ${dep}.deps = [ activationPhase.activationScriptsKey ];
@@ -116,10 +107,10 @@ in
     ];
 
     systemd.tmpfiles.rules = [
-      "z ${escapeShellArg cfg.storagePath} 0750 root ${builtins.toString config.ids.gids.keys} -"
-      "z ${escapeShellArg (cfg.storagePath + "/*")} 0750 root ${builtins.toString config.ids.gids.keys} -"
-      "e ${escapeShellArg cfg.storagePath} - - - 0 -"
-      "x ${escapeShellArg generationStoragePath} - - - - -"
+      "z /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} -"
+      "z /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} -"
+      "e /run/keys/sops - - - 0 -"
+      "x ${builtins.toString generationStoragePath} - - - - -"
     ];
   };
 }

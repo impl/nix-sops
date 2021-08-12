@@ -8,11 +8,6 @@
     nixpkgs = {
       url = "github:nixos/nixpkgs/nixpkgs-unstable";
     };
-
-    nmt = {
-      url = "gitlab:rycee/nmt";
-      flake = false;
-    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, ... }:
