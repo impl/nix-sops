@@ -68,11 +68,11 @@ in
         test -x $out/append-initrd-secrets && ln -snf ${initrdSecretAppenderWrapper} $out/append-initrd-secrets
       '';
     })
-    {
+    (mkIf (secretsAvailableInBootedSystem != {} || cfg.secrets != {}) {
       # Always generate the sopsBootSecrets initializer (even if empty) so that
       # the activation can reference it.
       system.activationScripts."sopsBootSecrets" = stringAfter [ "specialfs" ] (mkSecretsScript secretsAvailableInBootedSystem);
-    }
+    })
     (mkIf (secretsAvailableInBootedSystem != {}) {
       # Supply the booted-system secrets very early, before any activation
       # runs, by copying out of the initrd.

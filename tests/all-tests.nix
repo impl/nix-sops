@@ -11,7 +11,8 @@ in
     mkNixosTest = file: pkgs.nixosTest (args: import file {
       inherit self inputs pkgs system;
     } // args);
-  in pkgs.lib.mapAttrs (name: file: mkNixosTest file) {
+  in builtins.mapAttrs (name: file: mkNixosTest file) {
+    nixosActivation = ./nixos/activation.nix;
     nixosBootSecrets = ./nixos/boot-secrets.nix;
     nixosInstall = ./nixos/install.nix;
     nixosSimple = ./nixos/simple.nix;

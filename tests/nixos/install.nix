@@ -45,7 +45,7 @@ import ./make-installer-test.nix ({ self, pkgs, ... }: let
     # private key for this machine.
     setSystemArg='["system"] '"$(${pkgs.jq}/bin/jq -n --rawfile systemKey ${testOnlyAgePrivateKey} '$systemKey')"
 
-    printf '{}' >$out
+    truncate -s 0 $out
     ${pkgs.sops}/bin/sops --encrypt --in-place --age "$(<${testOnlyAgePublicKey})" --pgp "$(<${testOnlyPgpKeyFingerprint})" $out
     ${pkgs.sops}/bin/sops --set "$setSystemArg" $out
     ${pkgs.sops}/bin/sops --set '["test"] ${builtins.toJSON "foo"}' $out
@@ -95,6 +95,6 @@ in
 
   testScript = ''
     machine.wait_for_unit('default.target')
-    machine.succeed('test "$(< /etc/foo)" = foo')
+    machine.succeed('test "$(</etc/foo)" = foo')
   '';
 })

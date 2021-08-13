@@ -4,8 +4,12 @@
 #
 # Copyright (c) 2003-2021 Eelco Dolstra and the Nixpkgs/NixOS contributors
 f: args@{ inputs, pkgs, system, ... }: let
-  mkTest = { name, machine, preInstallScript ? "", postInstallScript ? "", testScript }: let
-    installedConfig = inputs.nixpkgs.lib.nixosSystem {
+  mkTest = t@{ name, preInstallScript ? "", postInstallScript ? "", testScript, ... }: let
+    profiles = { "system" = {}; }
+      // (t.profiles or {})
+      // (if t ? machine then { "system" = t.machine; } else {});
+
+    installedConfigs = builtins.mapAttrs (name: machine: inputs.nixpkgs.lib.nixosSystem {
       inherit (pkgs.stdenv.hostPlatform) system;
       modules = [
         ({ modulesPath, lib, ... }: with lib; {
@@ -23,6 +27,7 @@ f: args@{ inputs, pkgs, system, ... }: let
             enable = true;
             version = 2;
             device = "/dev/vda";
+            configurationName = name;
           };
 
           fileSystems = {
@@ -44,9 +49,9 @@ f: args@{ inputs, pkgs, system, ... }: let
         })
         machine
       ];
-    };
+    }) profiles;
 
-    installedSystem = installedConfig.config.system.build.toplevel;
+    installedSystems = builtins.mapAttrs (name: installedConfig: installedConfig.config.system.build.toplevel) installedConfigs;
   in
   {
     inherit name;
@@ -69,9 +74,7 @@ f: args@{ inputs, pkgs, system, ... }: let
         512
       ];
       virtualisation.bootDevice = "/dev/vdb";
-      virtualisation.pathsInNixDB = [
-        installedSystem
-      ];
+      virtualisation.pathsInNixDB = attrValues installedSystems;
     };
 
     testScript = ''
@@ -104,7 +107,12 @@ f: args@{ inputs, pkgs, system, ... }: let
       ${preInstallScript}
 
       # Install NixOS onto the primary drive.
-      machine.succeed('nixos-install -vv --root /mnt --system ${installedSystem} --no-root-passwd')
+      machine.succeed(
+        ${with pkgs.lib; concatStringsSep "\n" (mapAttrsToList (name: installedSystem: ''
+          "nix-env --store /mnt --extra-substituters 'auto?trusted=1' -p ${escapeShellArg "/mnt/nix/var/nix/profiles/${name}"} --set ${installedSystem}",
+        '') (filterAttrs (name: installedSystem: name != "system") installedSystems))}
+      )
+      machine.succeed('nixos-install -vv --root /mnt --system ${installedSystems."system"} --no-root-passwd')
       machine.succeed('sync')
 
       ${postInstallScript}

@@ -13,8 +13,8 @@ import ./make-test.nix {
       ${pkgs.age}/bin/age-keygen -o $out -y ${testOnlyAgePrivateKey}
     '';
     sopsFile = pkgs.runCommand "sops-secrets" { "SOPS_AGE_KEY_FILE" = testOnlyAgePrivateKey; } ''
-      printf '{}' >$out
-      ${pkgs.sops}/bin/sops --encrypt --in-place --age "$(< ${testOnlyAgePublicKey})" $out
+      truncate -s 0 $out
+      ${pkgs.sops}/bin/sops --encrypt --in-place --age "$(<${testOnlyAgePublicKey})" $out
       ${pkgs.sops}/bin/sops --set '["test"] ${builtins.toJSON "foo"}' $out
     '';
   in
@@ -30,6 +30,6 @@ import ./make-test.nix {
   };
 
   testScript = ''
-    machine.succeed('test "$(< /home/hm-user/foo)" = foo')
+    machine.succeed('test "$(</home/hm-user/foo)" = foo')
   '';
 }
