@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Noah Fontes
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # This test checks that an existing NixOS install can be activated with a new
 # configuration that contains SOPS secrets, and then that the bootstrapped
 # machine key can be rotated by our own machinery.

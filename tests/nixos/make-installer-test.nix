@@ -1,8 +1,12 @@
-# Portions of this file are derived from the system tests for NixOS
-# <https://github.com/NixOS/nixpkgs/blob/c6aa7bdae0143c41043968a3abd9a9727a6cdf5a/nixos/tests/hibernate.nix>,
-# which is released under the terms of the MIT license.
+# SPDX-FileCopyrightText: 2003-2021 Eelco Dolstra and the Nixpkgs/NixOS contributors
+# SPDX-FileCopyrightText: 2021 Noah Fontes
 #
-# Copyright (c) 2003-2021 Eelco Dolstra and the Nixpkgs/NixOS contributors
+# SPDX-License-Identifier: MIT
+#
+# Portions of this file are derived from the system tests for NixOS. See
+# <https://github.com/NixOS/nixpkgs/blob/c6aa7bdae0143c41043968a3abd9a9727a6cdf5a/nixos/tests/hibernate.nix>
+# for more information.
+
 f: args@{ inputs, pkgs, system, ... }: let
   mkTest = t@{ name, preInstallScript ? "", postInstallScript ? "", testScript, ... }: let
     profiles = { "system" = {}; }

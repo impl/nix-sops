@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Noah Fontes
+#
+# SPDX-License-Identifier: Apache-2.0
+
 args@{ lib, ... }: with lib;
 let
   mkLib = self:

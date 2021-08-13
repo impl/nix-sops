@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Noah Fontes
+#
+# SPDX-License-Identifier: Apache-2.0
+
 f: args@{ self, inputs, pkgs, ... }: let
   mkTest = { name, configuration, testScript }: {
     inherit name;

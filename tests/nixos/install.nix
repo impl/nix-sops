@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2021 Noah Fontes
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # This test attempts to emulate a nixos-install operation, where an essentially
 # unconfigured system is first bootstrapped by a user with a PGP key. The
 # bootstrap process installs a permanent age key that is used for future
