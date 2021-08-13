@@ -68,9 +68,9 @@ in
           The runtime location to store secret data. This directory will be
           created if it doesn't exist.
         '';
-        default = /tmp + "/sops-per-user-${config.home.username}";
+        default = config.xdg.dataHome + "/sops";
         example = literalExample ''
-          /. + config.home.homeDirectory + "/secrets.d";
+          /tmp + "/sops-per-user-${config.home.username}"
         '';
       };
 
