@@ -8,7 +8,11 @@ let
       activation = importLib ./activation.nix;
       options = importLib ./options.nix;
 
-      inherit (self.activation) mapActivationPhaseSecrets;
-      inherit (self.options) activationPhasesOption mkSecretsOption;
+      inherit (self.activation)
+        mapActivationPhaseSecrets
+        mkVersionLinkFarmEntries;
+      inherit (self.options)
+        activationPhasesOption
+        mkSecretsOption;
     };
 in makeExtensible mkLib

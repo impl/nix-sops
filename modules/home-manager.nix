@@ -2,20 +2,21 @@
 let
   cfg = config.sops;
 
-  generationStoragePath = /. + cfg.storagePath + "/${config.home.activationPackage.name}";
+  versionPkg = pkgs.linkFarm "sops-generation" (self.lib.mkVersionLinkFarmEntries (attrValues cfg.secrets));
+  generationPath = "${builtins.toString (/. + cfg.storagePath)}/${builtins.baseNameOf versionPkg}";
 
-  getSecretStoragePath = name: generationStoragePath + "/${strings.sanitizeDerivationName name}";
+  getSecretPath = name: generationPath + "/secrets-${strings.sanitizeDerivationName name}-${builtins.hashString "sha256" name}";
 
   initScript = ''
-    mkdir -p ${escapeShellArg generationStoragePath}
+    mkdir -p ${escapeShellArg generationPath}
     chmod 0700 ${escapeShellArg cfg.storagePath}
-    chmod 0700 ${escapeShellArg generationStoragePath}
+    chmod 0700 ${escapeShellArg generationPath}
   '';
 
   # Create a package that contains all store symbolic links.
   linkPkg = pkgs.linkFarm "sops-secret-links" (mapAttrsToList (name: secret: {
     inherit name;
-    path = getSecretStoragePath "secrets-${name}";
+    path = getSecretPath name;
   }) cfg.secrets);
 
   # Option type (dependent on linkPkg to resolve the target).
@@ -29,9 +30,9 @@ let
   };
 
   mkSecretScript = { name, secret }: let
-    secretStoragePath = getSecretStoragePath "secrets-${name}";
-    targetI = escapeShellArg (secretStoragePath + ".i");
-    target = escapeShellArg secretStoragePath;
+    secretPath = getSecretPath name;
+    targetI = escapeShellArg (secretPath + ".i");
+    target = escapeShellArg secretPath;
   in ''
     $DRY_RUN_CMD truncate -s 0 ${targetI}
     ${concatStringsSep "\n" (map (source: ''
@@ -63,7 +64,7 @@ in
           The runtime location to store secret data. This directory will be
           created if it doesn't exist.
         '';
-        default = /tmp/sops-per-user + "/${config.home.username}";
+        default = /tmp + "/sops-per-user-${config.home.username}";
         example = literalExample ''
           /. + config.home.homeDirectory + "/secrets.d";
         '';
@@ -107,7 +108,7 @@ in
       "z ${escapeShellArg cfg.storagePath} 0700 - - -"
       "z ${escapeShellArg (cfg.storagePath + "/*")} 0700 - - -"
       "e ${escapeShellArg cfg.storagePath} - - - 0 -"
-      "x ${escapeShellArg generationStoragePath} - - - - -"
+      "x ${escapeShellArg generationPath} - - - - -"
     ];
   };
 }

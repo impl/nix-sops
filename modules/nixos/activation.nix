@@ -1,16 +1,16 @@
-{ self, config, lib, pkgs, ... }: with lib;
+{ self, config, generationPath, lib, pkgs, ... }: with lib;
 let
   inherit (config) users;
-  inherit (import ./lib.nix { inherit config lib; })
-    generationStoragePath
-    getSecretStoragePath;
 
   cfg = config.sops;
+
+  # Stable path for a secret outside of the store.
+  getSecretPath = name: generationPath + "/secrets-${strings.sanitizeDerivationName name}-${builtins.hashString "sha256" name}";
 
   # Create a package that contains all store symbolic links.
   linkPkg = pkgs.linkFarm "sops-secret-links" (mapAttrsToList (name: secret: {
     inherit name;
-    path = getSecretStoragePath "secrets-${name}";
+    path = getSecretPath name;
   }) cfg.secrets);
 
   # Option type (dependent on linkPkg to resolve the target).
@@ -36,11 +36,11 @@ let
     });
   };
 
-  mkSecretScript = { name, secret }: let
-    secretStoragePath = getSecretStoragePath "secrets-${name}";
-    targetDir = escapeShellArg (dirOf secretStoragePath);
-    targetI = escapeShellArg (secretStoragePath + ".i");
-    target = escapeShellArg secretStoragePath;
+  mkSecretScript = name: secret: let
+    secretPath = getSecretPath name;
+    targetDir = escapeShellArg (dirOf secretPath);
+    targetI = escapeShellArg (secretPath + ".i");
+    target = escapeShellArg secretPath;
   in ''
     mkdir -p ${targetDir}
     truncate -s 0 ${targetI}
@@ -63,7 +63,7 @@ let
     ''}
     export SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg
 
-    ${concatStringsSep "\n" (mapAttrsToList (name: secret: mkSecretScript { inherit name secret; }) secrets)}
+    ${concatStringsSep "\n" (mapAttrsToList mkSecretScript secrets)}
   '';
 in
 {
@@ -104,13 +104,6 @@ in
           ${dep}.deps = [ activationPhase.activationScriptsKey ];
         }) activationPhase.before))
       ]) cfg))
-    ];
-
-    systemd.tmpfiles.rules = [
-      "z /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} -"
-      "z /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} -"
-      "e /run/keys/sops - - - 0 -"
-      "x ${builtins.toString generationStoragePath} - - - - -"
     ];
   };
 }

@@ -1,7 +1,5 @@
-{ self, config, lib, pkgs, ... }: with lib;
+{ self, config, generationPath, lib, pkgs, ... }: with lib;
 let
-  inherit (import ./lib.nix { inherit config lib; }) getSecretStoragePath;
-
   cfg = config.sops;
 
   secretsOption = self.lib.mkSecretsOption {
@@ -19,7 +17,7 @@ let
       };
 
       config = {
-        target = getSecretStoragePath "boot-secrets-${name}";
+        target = generationPath + "/boot-secrets-${strings.sanitizeDerivationName name}-${builtins.hashString "sha256" name}";
       };
     });
   };
