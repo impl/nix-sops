@@ -18,9 +18,7 @@ in
   ];
 
   systemd.tmpfiles.rules = [
-    "z /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} -"
-    "z /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} -"
-    "e /run/keys/sops - - - 0 -"
-    "x ${generationPath} - - - - -"
+    "e /run/keys/sops 0750 root ${builtins.toString config.ids.gids.keys} 0 -"
+    "z ${generationPath} 0750 root ${builtins.toString config.ids.gids.keys} - -"
   ];
 }

@@ -109,10 +109,8 @@ in
     ];
 
     systemd.user.tmpfiles.rules = [
-      "z ${escapeShellArg cfg.storagePath} 0700 - - -"
-      "z ${escapeShellArg (cfg.storagePath + "/*")} 0700 - - -"
-      "e ${escapeShellArg cfg.storagePath} - - - 0 -"
-      "x ${escapeShellArg generationPath} - - - - -"
+      "e ${escapeShellArg cfg.storagePath} 0700 - - 0 -"
+      "z ${escapeShellArg generationPath} 0700 - - - -"
     ];
   };
 }
