@@ -14,6 +14,7 @@ in
 
   imports = [
     ./activation.nix
+    ./age.nix
     ./boot.nix
   ];
 

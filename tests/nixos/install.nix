@@ -61,17 +61,10 @@ in
   machine = { config, ... }: {
     imports = [ self.nixosModule ];
 
-    # Set up a secret for this system key to be made available in the
-    # initrd secrets.
-    sops.bootSecrets."/nix-sops.asc" = {
-      sources = [
-        { file = sopsFile; key = ''["system"]''; }
-      ];
-      availableInBootedSystem = true;
+    sops.ageKeySecretSource = {
+      file = sopsFile;
+      key = ''["system"]'';
     };
-
-    # Use this secret to decrypt the rest of the secrets on the machine.
-    sops.ageKeyFile = config.sops.bootSecrets."/nix-sops.asc".target;
 
     sops.secrets."test" = {
       sources = [
