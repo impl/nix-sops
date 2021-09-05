@@ -40,7 +40,7 @@ let
   in ''
     $DRY_RUN_CMD truncate -s 0 ${targetI}
     ${concatStringsSep "\n" (map (source: ''
-      $DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
+      $DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
     '') secret.sources)}
     $DRY_RUN_CMD chmod ${escapeShellArg secret.mode} ${targetI}
     $DRY_RUN_CMD mv -Tf ${targetI} ${target}

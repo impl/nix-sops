@@ -34,7 +34,7 @@ in
 
   config = mkIf (cfg.ageKeySecretSource != null) {
     sops.bootSecrets.${initrdSecretPath} = mkForce {
-      sources = [ cfg.ageKeySecretSource ];
+      sources = [ (cfg.ageKeySecretSource // { outputType = "binary"; }) ];
       availableInBootedSystem = true;
     };
 

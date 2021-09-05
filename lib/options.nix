@@ -74,6 +74,14 @@ in
         '';
         example = ''["secrets"][1]'';
       };
+      outputType = mkOption {
+        type = types.nullOr (types.enum [ "json" "yaml" "dotenv" "ini" "binary" ]);
+        default = null;
+        description = ''
+          The output format to use for the source. If not specified, the format
+          will be inferred from the file extension.
+        '';
+      };
     };
   };
 

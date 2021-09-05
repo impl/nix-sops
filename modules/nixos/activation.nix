@@ -55,7 +55,7 @@ let
       chgrp ${escapeShellArg secret.group} ${targetI}
     ''}
     ${concatStringsSep "\n" (map (source: ''
-      ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
+      ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
     '') secret.sources)}
     chmod ${escapeShellArg secret.mode} ${targetI}
     mv -Tf ${targetI} ${target}
