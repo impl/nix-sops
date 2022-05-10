@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
-{ self, config, generationPath, lib, pkgs, ... }: with lib;
+{ self, config, generationPath, lib, pkgs, versionPkg, ... }: with lib;
 let
   inherit (config) users;
 
@@ -45,21 +45,15 @@ let
     targetDir = escapeShellArg (dirOf secretPath);
     targetI = escapeShellArg (secretPath + ".i");
     target = escapeShellArg secretPath;
-  in ''
-    mkdir -p ${targetDir}
-    truncate -s 0 ${targetI}
-    ${optionalString (secret.owner != "root") ''
-      chown ${escapeShellArg secret.owner} ${targetI}
-    ''}
-    ${optionalString (secret.group != users.users."root".group) ''
-      chgrp ${escapeShellArg secret.group} ${targetI}
-    ''}
-    ${concatStringsSep "\n" (map (source: ''
-      ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
-    '') secret.sources)}
-    chmod ${escapeShellArg secret.mode} ${targetI}
-    mv -Tf ${targetI} ${target}
-  '';
+  in self.lib.mkShellAndIfList (flatten [
+    "mkdir -p ${targetDir}"
+    "truncate -s 0 ${targetI}"
+    (optional (secret.owner != "root") "chown ${escapeShellArg secret.owner} ${targetI}")
+    (optional (secret.group != users.users."root".group) "chgrp ${escapeShellArg secret.group} ${targetI}")
+    (map (source: "${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg "${source.file}"} >>${targetI}") secret.sources)
+    "chmod ${escapeShellArg secret.mode} ${targetI}"
+    "mv -Tf ${targetI} ${target}"
+  ]);
 
   mkSecretsScript = secrets: ''
     ${optionalString (config.sops.ageKeyFile != null) ''

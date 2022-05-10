@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6,7 +6,7 @@
 {
   name = "sops-nixos-boot-secrets";
 
-  machine = let
+  nodes.machine = let
     # NB: This puts your age private key in the Nix store. You almost certainly
     # do not want to do this. Read the documentation before you copy from this
     # file!

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6,11 +6,11 @@
 let
   cfg = config.sops;
 
-  versionPkg = pkgs.linkFarm "sops-generation" (self.lib.mkVersionLinkFarmEntries ((attrValues cfg.bootSecrets) ++ (attrValues cfg.secrets)));
+  versionPkg = self.lib.mkVersionPkg pkgs ((attrValues cfg.bootSecrets) ++ (attrValues cfg.secrets));
   generationPath = "/run/keys/sops/${builtins.baseNameOf versionPkg}";
 in
 {
-  _module.args = { inherit generationPath; };
+  _module.args = { inherit generationPath versionPkg; };
 
   imports = [
     ./activation.nix

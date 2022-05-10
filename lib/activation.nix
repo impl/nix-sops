@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -11,15 +11,16 @@
     secrets = listToAttrs secrets;
   })) secretsByActivationPhase;
 
-  # Build a set of symlink entries that will be unique over all SOPS sources
-  # for the current configuration. Any time the sources change, the store name
-  # corresponding to a link farm of these entries will also change.
-  mkVersionLinkFarmEntries = secrets: let
-    mkSourceLink = prefix: i: { file, ... }: {
-      name = "${prefix}source-${builtins.toString i}";
-      path = file;
-    };
-    mkSecretLink = i: { sources, ... }: imap1 (mkSourceLink "secret-${builtins.toString i}-") sources;
-    secretLinks = imap1 mkSecretLink secrets;
-  in builtins.concatLists secretLinks;
+  # Copy all source names into a package. This both generates a unique hash of
+  # the sources (transitively through their store paths) and prevents the store
+  # from garbage collecting inputs.
+  mkVersionPkg = { runCommandLocal, ... }: secrets: let
+    sourceFiles = unique (builtins.concatMap (secret: (map (source: source.file) secret.sources)) secrets);
+  in runCommandLocal "sops-generation"
+    { inherit sourceFiles; }
+    ''
+      for sourceFile in $sourceFiles; do
+        echo $sourceFile >>$out
+      done
+    '';
 }

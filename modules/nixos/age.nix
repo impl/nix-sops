@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,7 +10,7 @@ let
   ageKeyFile = "/run/keys/sops/age.txt";
 
   secretsScript = ''
-    ${pkgs.age}/bin/age-keygen -y ${cfg.bootSecrets.${initrdSecretPath}.target} >/dev/null 2>&1 \
+    test -n "$(${pkgs.age}/bin/age-keygen -y ${cfg.bootSecrets.${initrdSecretPath}.target})" \
       && cp -a ${cfg.bootSecrets.${initrdSecretPath}.target} ${ageKeyFile}
   '';
 in

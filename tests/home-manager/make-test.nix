@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6,7 +6,7 @@ f: args@{ self, inputs, pkgs, ... }: let
   mkTest = { name, configuration, testScript }: {
     inherit name;
 
-    machine = { config, ... }: {
+    nodes.machine = { config, ... }: {
       users.users."hm-user" = {
         isNormalUser = true;
         packages = [

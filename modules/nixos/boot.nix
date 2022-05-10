@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
-{ self, config, generationPath, lib, pkgs, ... }: with lib;
+{ self, config, generationPath, lib, pkgs, versionPkg, ... }: with lib;
 let
   cfg = config.sops;
 
@@ -30,15 +30,13 @@ let
     targetDir = escapeShellArg (dirOf secret.target);
     targetI = escapeShellArg (secret.target + ".i");
     target = escapeShellArg secret.target;
-  in ''
-    mkdir -p ${targetDir}
-    truncate -s 0 ${targetI}
-    ${concatStringsSep "\n" (map (source: ''
-      ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
-    '') secret.sources)}
-    chmod ${escapeShellArg secret.mode} ${targetI}
-    mv -Tf ${targetI} ${target}
-  '';
+  in self.lib.mkShellAndIfList (flatten [
+    "mkdir -p ${targetDir}"
+    "truncate -s 0 ${targetI}"
+    (map (source: "${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg "${source.file}"} >>${targetI}") secret.sources)
+    "chmod ${escapeShellArg secret.mode} ${targetI}"
+    "mv -Tf ${targetI} ${target}"
+  ]);
 
   mkSecretsScript = secrets: ''
     ${optionalString (config.sops.ageKeyFile != null) ''

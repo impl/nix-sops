@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -11,12 +11,15 @@ let
     {
       activation = importLib ./activation.nix;
       options = importLib ./options.nix;
+      shell = importLib ./shell.nix;
 
       inherit (self.activation)
         mapActivationPhaseSecrets
-        mkVersionLinkFarmEntries;
+        mkVersionPkg;
       inherit (self.options)
         activationPhasesOption
         mkSecretsOption;
+      inherit (self.shell)
+        mkShellAndIfList;
     };
 in makeExtensible mkLib

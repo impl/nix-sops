@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6,7 +6,7 @@
 let
   cfg = config.sops;
 
-  versionPkg = pkgs.linkFarm "sops-generation" (self.lib.mkVersionLinkFarmEntries (attrValues cfg.secrets));
+  versionPkg = self.lib.mkVersionPkg pkgs (attrValues cfg.secrets);
   generationPath = "${builtins.toString (/. + cfg.storagePath)}/${builtins.baseNameOf versionPkg}";
 
   getSecretPath = name: generationPath + "/secrets-${strings.sanitizeDerivationName name}-${builtins.hashString "sha256" name}";
@@ -37,20 +37,18 @@ let
     secretPath = getSecretPath name;
     targetI = escapeShellArg (secretPath + ".i");
     target = escapeShellArg secretPath;
-  in ''
-    $DRY_RUN_CMD truncate -s 0 ${targetI}
-    ${concatStringsSep "\n" (map (source: ''
-      $DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg source.file} >>${targetI}
-    '') secret.sources)}
-    $DRY_RUN_CMD chmod ${escapeShellArg secret.mode} ${targetI}
-    $DRY_RUN_CMD mv -Tf ${targetI} ${target}
-  '';
+  in self.lib.mkShellAndIfList (flatten [
+    "$DRY_RUN_CMD truncate -s 0 ${targetI}"
+    (map (source: "$DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg "${source.file}"} >>${targetI}") secret.sources)
+    "$DRY_RUN_CMD chmod ${escapeShellArg secret.mode} ${targetI}"
+    "$DRY_RUN_CMD mv -Tf ${targetI} ${target}"
+  ]);
 
   mkSecretsScript = secrets: ''
     ${optionalString (config.sops.ageKeyFile != null) ''
       $DRY_RUN_CMD export SOPS_AGE_KEY_FILE=${escapeShellArg config.sops.ageKeyFile}
     ''}
-    export SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg
+    $DRY_RUN_CMD export SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg
 
     ${concatStringsSep "\n" (mapAttrsToList (name: secret: mkSecretScript { inherit name secret; }) secrets)}
   '';

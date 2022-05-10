@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2003-2021 Eelco Dolstra and the Nixpkgs/NixOS contributors
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
 #
 # SPDX-License-Identifier: MIT
 #
@@ -60,7 +60,7 @@ f: args@{ inputs, pkgs, system, ... }: let
   {
     inherit name;
 
-    machine = { lib, modulesPath, ... }: with lib; {
+    nodes.machine = { lib, modulesPath, ... }: with lib; {
       imports = [
         "${modulesPath}/profiles/installation-device.nix"
         "${modulesPath}/profiles/base.nix"
@@ -78,12 +78,12 @@ f: args@{ inputs, pkgs, system, ... }: let
         512
       ];
       virtualisation.bootDevice = "/dev/vdb";
-      virtualisation.pathsInNixDB = attrValues installedSystems;
+      virtualisation.additionalPaths = attrValues installedSystems;
     };
 
     testScript = ''
       def create_installed_machine(name):
-        return create_machine({
+        new_machine = create_machine({
           "qemuFlags": " ".join([
             "-cpu max",
             "${if system == "x86_64-linux" then "-m 1024" else "-m 768 -enable-kvm -machine virt,gic-version=host"}",
@@ -93,6 +93,8 @@ f: args@{ inputs, pkgs, system, ... }: let
           "hda": "vm-state-machine/machine.qcow2",
           "name": name,
         })
+        driver.machines.append(new_machine)
+        return new_machine
 
 
       # Bootstrap machine.
