@@ -1,10 +1,38 @@
+# SPDX-FileCopyrightText: 2022 Noah Fontes
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: CI
 on:
   push:
   pull_request:
 jobs:
-  check:
+  lint:
     runs-on: ubuntu-latest
+    steps:
+    - uses: cachix/install-nix-action@v17
+      with:
+        extra_nix_config: |
+          extra-platforms = aarch64-linux
+          system-features = nixos-test benchmark big-parallel kvm
+    - uses: actions/checkout@v3
+    - uses: fsfe/reuse-action@v1
+    - id: gather-checks
+      name: Gather checks
+      run: |
+        echo -n '::set-output name=checks::'
+        nix flake show --json \
+          | jq -c '.checks // {} | to_entries | map({"arch": .key} + {"check": (.value | keys[])})'
+    outputs:
+      checks: ${{steps.gather-checks.outputs.checks}}
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    if: fromJSON(needs.lint.outputs.checks)[0] != null
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{fromJSON(needs.lint.outputs.checks)}}
     steps:
     - run: sudo apt-get -qy install qemu-user qemu-user-static
     - uses: cachix/install-nix-action@v17
@@ -13,4 +41,4 @@ jobs:
           extra-platforms = aarch64-linux
           system-features = nixos-test benchmark big-parallel kvm
     - uses: actions/checkout@v3
-    - run: nix flake check --print-build-logs --keep-going
+    - run: nix build ${{matrix.arch != 'x86_64-linux' && '--dry-run' || ''}} --no-link --print-build-logs --keep-going '.#checks.${{matrix.arch}}.${{matrix.check}}'
