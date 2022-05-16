@@ -15,6 +15,7 @@ let
 
       inherit (self.activation)
         mapActivationPhaseSecrets
+        copySourceToStoreSanitized
         mkVersionPkg;
       inherit (self.options)
         activationPhasesOption

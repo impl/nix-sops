@@ -50,7 +50,7 @@ let
     "truncate -s 0 ${targetI}"
     (optional (secret.owner != "root") "chown ${escapeShellArg secret.owner} ${targetI}")
     (optional (secret.group != users.users."root".group) "chgrp ${escapeShellArg secret.group} ${targetI}")
-    (map (source: "${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg "${source.file}"} >>${targetI}") secret.sources)
+    (map (source: "${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg (self.lib.copySourceToStoreSanitized source)} >>${targetI}") secret.sources)
     "chmod ${escapeShellArg secret.mode} ${targetI}"
     "mv -Tf ${targetI} ${target}"
   ]);

@@ -33,7 +33,7 @@ let
   in self.lib.mkShellAndIfList (flatten [
     "mkdir -p ${targetDir}"
     "truncate -s 0 ${targetI}"
-    (map (source: "${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg "${source.file}"} >>${targetI}") secret.sources)
+    (map (source: "${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg (self.lib.copySourceToStoreSanitized source)} >>${targetI}") secret.sources)
     "chmod ${escapeShellArg secret.mode} ${targetI}"
     "mv -Tf ${targetI} ${target}"
   ]);
