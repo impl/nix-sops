@@ -24,6 +24,7 @@
   in runCommandLocal "sops-generation"
     { inherit sourceFiles; }
     ''
+      touch $out
       for sourceFile in $sourceFiles; do
         echo $sourceFile >>$out
       done
