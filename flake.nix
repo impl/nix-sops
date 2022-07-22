@@ -16,12 +16,10 @@
 
   outputs = inputs@{ self, nixpkgs, home-manager, ... }:
   let
-    lib = nixpkgs.lib.extend (final: prev: {
-      my = import ./lib {
-        inherit inputs;
-        lib = final;
-      };
-    });
+    lib = import ./lib {
+      inherit inputs;
+      inherit (nixpkgs) lib;
+    };
 
     mkMod = mod: {
       imports = [ mod ];
@@ -30,20 +28,20 @@
     };
   in
   {
-    lib = lib.my;
+    inherit lib;
 
-    checks = lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: import ./tests/all-tests.nix {
+    checks = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (system: import ./tests/all-tests.nix {
       inherit system self inputs;
     });
 
-    nixosModules = {
+    nixosModules = rec {
       sops = mkMod ./modules/nixos;
+      default = sops;
     };
-    nixosModule = self.nixosModules.sops;
 
-    homeModules = {
+    homeModules = rec {
       sops = mkMod ./modules/home-manager.nix;
+      default = sops;
     };
-    homeModule = self.homeModules.sops;
   };
 }

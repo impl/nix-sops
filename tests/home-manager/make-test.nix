@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 f: args@{ self, inputs, pkgs, ... }: let
-  mkTest = { name, configuration, testScript }: {
+  mkTest = { name, module, testScript }: {
     inherit name;
 
     nodes.machine = { config, ... }: {
@@ -11,23 +11,25 @@ f: args@{ self, inputs, pkgs, ... }: let
         isNormalUser = true;
         packages = [
           (inputs.home-manager.lib.homeManagerConfiguration {
-            inherit configuration;
-            inherit (config.nixpkgs) system;
-            username = "hm-user";
-            homeDirectory = config.users.users."hm-user".home;
-
-            extraModules = [
-              self.homeModule
+            pkgs = inputs.nixpkgs.legacyPackages.${config.nixpkgs.system};
+            modules = [
+              self.homeModules.default
+              module
               {
                 xdg.enable = true;
                 manual.manpages.enable = false;
+                home = {
+                  username = "hm-user";
+                  homeDirectory = config.users.users."hm-user".home;
+                  stateVersion = "22.11";
+                };
               }
             ];
           }).activationPackage
         ];
       };
 
-      nix.allowedUsers = [ "hm-user" ];
+      nix.settings.allowed-users = [ "hm-user" ];
     };
 
     testScript = ''

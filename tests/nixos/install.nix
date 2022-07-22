@@ -59,7 +59,7 @@ in
   name = "sops-nixos-install";
 
   machine = { config, ... }: {
-    imports = [ self.nixosModule ];
+    imports = [ self.nixosModules.default ];
 
     sops.ageKeySecretSource = {
       file = sopsFile;

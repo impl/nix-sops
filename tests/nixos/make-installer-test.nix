@@ -66,7 +66,7 @@ f: args@{ inputs, pkgs, system, ... }: let
         "${modulesPath}/profiles/base.nix"
       ];
 
-      nix.binaryCaches = mkForce [];
+      nix.settings.substituters = mkForce [];
       nix.extraOptions = ''
         hashed-mirrors =
         connect-timeout = 1

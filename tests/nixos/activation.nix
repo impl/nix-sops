@@ -48,7 +48,7 @@ in
     '';
 
     mkConfig = sopsFile: { config, ... }: {
-      imports = [ self.nixosModule ];
+      imports = [ self.nixosModules.default ];
 
       sops.secrets."test" = {
         sources = [

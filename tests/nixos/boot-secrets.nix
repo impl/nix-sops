@@ -22,7 +22,7 @@
       ${pkgs.sops}/bin/sops --set '["test"] ${builtins.toJSON "foo"}' $out
     '';
   in { config, ... }: {
-    imports = [ self.nixosModule ];
+    imports = [ self.nixosModules.default ];
 
     sops.bootSecrets."/foo" = {
       sources = [

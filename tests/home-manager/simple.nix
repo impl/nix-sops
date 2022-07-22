@@ -5,7 +5,7 @@
 import ./make-test.nix {
   name = "sops-home-manager-simple";
 
-  configuration = { config, lib, pkgs, ... }: with lib;
+  module = { config, lib, pkgs, ... }: with lib;
   let
     # NB: This puts your age private key in the Nix store. You almost certainly
     # do not want to do this. Read the documentation before you copy from this
