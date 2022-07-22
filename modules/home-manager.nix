@@ -39,7 +39,7 @@ let
     target = escapeShellArg secretPath;
   in self.lib.mkShellAndIfList (flatten [
     "$DRY_RUN_CMD truncate -s 0 ${targetI}"
-    (map (source: "$DRY_RUN_CMD ${pkgs.sops}/bin/sops --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg (self.lib.copySourceToStoreSanitized source)} >>${targetI}") secret.sources)
+    (map (source: "$DRY_RUN_CMD ${pkgs.sops}/bin/sops --config /dev/null --decrypt ${optionalString (source.outputType != null) "--output-type ${escapeShellArg source.outputType}"} ${optionalString (source.key != null) "--extract ${escapeShellArg source.key}"} ${escapeShellArg (self.lib.copySourceToStoreSanitized source)} >>${targetI}") secret.sources)
     "$DRY_RUN_CMD chmod ${escapeShellArg secret.mode} ${targetI}"
     "$DRY_RUN_CMD mv -Tf ${targetI} ${target}"
   ]);
