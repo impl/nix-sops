@@ -39,7 +39,14 @@ in
     };
 
     boot.initrd.postMountCommands = mkAfter secretsScript;
-    system.activationScripts."sopsAgeKey" = stringAfter [ "sopsBootSecrets" ] secretsScript;
+    system.activationScripts = mkMerge [
+      {
+        "sopsAgeKey" = stringAfter [ "sopsBootSecrets" ] secretsScript;
+      }
+      (mkMerge (self.lib.mapActivationPhaseSecrets ({ activationPhase, ... }: {
+        ${activationPhase.activationScriptsKey}.deps = [ "sopsAgeKey" ];
+      }) cfg))
+    ];
 
     sops.ageKeyFile = ageKeyFile;
 
