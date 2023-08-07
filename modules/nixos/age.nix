@@ -51,7 +51,7 @@ in
     sops.ageKeyFile = ageKeyFile;
 
     systemd.tmpfiles.rules = [
-      "z ${ageKeyFile} 0640 root ${builtins.toString config.ids.gids.keys} - -"
+      "z ${ageKeyFile} 0600 root ${builtins.toString config.ids.gids.keys} - -"
     ];
   };
 }
