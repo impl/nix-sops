@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -85,30 +85,33 @@ in
     };
   };
 
-  config = mkIf (cfg.secrets != {}) {
-    assertions = mapAttrsToList (name: secret: {
-      assertion = hasAttr secret.activationPhase cfg.activationPhases;
-      message = "The activation phase ${strings.escapeNixIdentifier secret.activationPhase} used by sops.secrets.${strings.escapeNixIdentifier name} is not defined.";
-    }) cfg.secrets;
+  config = mkIf (cfg.secrets != {}) (mkMerge [
+    {
+      assertions = mapAttrsToList (name: secret: {
+        assertion = hasAttr secret.activationPhase cfg.activationPhases;
+        message = "The activation phase ${strings.escapeNixIdentifier secret.activationPhase} used by sops.secrets.${strings.escapeNixIdentifier name} is not defined.";
+      }) cfg.secrets;
 
-    sops.activationPhases = {
-      "whenever" = { };
-    };
+      sops.activationPhases = {
+        "whenever" = { };
+      };
 
-    home.activation = let
-      inherit (inputs.home-manager.lib.hm) dag;
-    in mkMerge [
-      {
-        sopsInit = dag.entryAfter [ "writeBoundary" ] initScript;
-      }
-      (mkMerge (self.lib.mapActivationPhaseSecrets ({ activationPhase, secrets }: {
-        ${activationPhase.activationScriptsKey} = dag.entryBetween activationPhase.before ([ "sopsInit" ] ++ activationPhase.after) (mkSecretsScript secrets);
-      }) cfg))
-    ];
-
-    systemd.user.tmpfiles.rules = [
-      "e ${escapeShellArg cfg.storagePath} 0700 - - 0 -"
-      "z ${escapeShellArg generationPath} 0700 - - - -"
-    ];
-  };
+      home.activation = let
+        inherit (inputs.home-manager.lib.hm) dag;
+      in mkMerge [
+        {
+          sopsInit = dag.entryAfter [ "writeBoundary" ] initScript;
+        }
+        (mkMerge (self.lib.mapActivationPhaseSecrets ({ activationPhase, secrets }: {
+          ${activationPhase.activationScriptsKey} = dag.entryBetween activationPhase.before ([ "sopsInit" ] ++ activationPhase.after) (mkSecretsScript secrets);
+        }) cfg))
+      ];
+    }
+    (mkIf pkgs.stdenv.hostPlatform.isLinux {
+      systemd.user.tmpfiles.rules = [
+        "e ${escapeShellArg cfg.storagePath} 0700 - - 0 -"
+        "z ${escapeShellArg generationPath} 0700 - - - -"
+      ];
+    })
+  ]);
 }

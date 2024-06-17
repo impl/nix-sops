@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
-{ self, config, generationPath, lib, pkgs, versionPkg, ... }: with lib;
+{ self, config, generationPath, lib, pkgs, ... }: with lib;
 let
   cfg = config.sops;
 

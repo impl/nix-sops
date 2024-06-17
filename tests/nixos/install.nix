@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -78,7 +78,7 @@ in
   preInstallScript = ''
     # Import PGP key for installer. Using a bind mount ensures the key will not
     # be copied to the target drive.
-    machine.succeed(
+    installer.succeed(
       '${pkgs.gnupg}/bin/gpg --batch --import ${testOnlyPgpKey}',
       'mkdir -p /mnt/root/.gnupg',
       'mount --bind /root/.gnupg /mnt/root/.gnupg',
@@ -87,11 +87,11 @@ in
 
   postInstallScript = ''
     # Will hang reboot if not explicitly terminated.
-    machine.succeed('${pkgs.gnupg}/bin/gpgconf --kill gpg-agent')
+    installer.succeed('${pkgs.gnupg}/bin/gpgconf --kill all')
   '';
 
   testScript = ''
-    machine.wait_for_unit('default.target')
-    machine.succeed('test "$(</etc/foo)" = foo')
+    target.wait_for_unit('default.target')
+    target.succeed('test "$(</etc/foo)" = foo')
   '';
 })

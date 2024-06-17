@@ -1,11 +1,11 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
 import ./make-test.nix {
   name = "sops-home-manager-simple";
 
-  module = { config, lib, pkgs, ... }: with lib;
+  module = { config, lib, pkgs, ... }:
   let
     # NB: This puts your age private key in the Nix store. You almost certainly
     # do not want to do this. Read the documentation before you copy from this

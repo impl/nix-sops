@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -11,7 +11,7 @@ f: args@{ self, inputs, pkgs, ... }: let
         isNormalUser = true;
         packages = [
           (inputs.home-manager.lib.homeManagerConfiguration {
-            pkgs = inputs.nixpkgs.legacyPackages.${config.nixpkgs.system};
+            pkgs = inputs.nixpkgs.legacyPackages.${config.nixpkgs.hostPlatform.system};
             modules = [
               self.homeModules.default
               module
@@ -30,6 +30,7 @@ f: args@{ self, inputs, pkgs, ... }: let
       };
 
       nix.settings.allowed-users = [ "hm-user" ];
+      nixpkgs.hostPlatform = pkgs.stdenv.hostPlatform.system;
     };
 
     testScript = ''

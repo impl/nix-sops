@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -67,33 +67,33 @@ in
 
   testScript = ''
     # Add temporary bootstrapping key.
-    machine.wait_for_unit('default.target')
-    machine.succeed(
+    target.wait_for_unit('default.target')
+    target.succeed(
       'mkdir -p /root/.config/sops',
       'ln -s ${testOnlyBootstrapAgePrivateKey} /root/.config/sops/keys.txt',
     );
 
     # Apply initial configuration.
-    machine.succeed('/nix/var/nix/profiles/initial/bin/switch-to-configuration switch')
+    target.succeed('/nix/var/nix/profiles/initial/bin/switch-to-configuration switch')
 
     # Bootstrap directory should no longer be required.
-    machine.succeed('rm -fr /root/.config/sops');
+    target.succeed('rm -fr /root/.config/sops');
 
     # Make sure our file got put in the right place.
-    machine.succeed('test "$(</etc/foo)" = foo')
-    orig = machine.succeed('readlink -ne /etc/foo')
+    target.succeed('test "$(</etc/foo)" = foo')
+    orig = target.succeed('readlink -ne /etc/foo')
 
     # Reboot to test boot-time activation.
-    machine.shutdown()
-    machine.wait_for_unit('default.target')
-    machine.succeed('test "$(</etc/foo)" = foo')
+    target.shutdown()
+    target.wait_for_unit('default.target')
+    target.succeed('test "$(</etc/foo)" = foo')
 
     # Apply a new configuration with an updated value.
-    machine.succeed('/nix/var/nix/profiles/reconfigured/bin/switch-to-configuration switch')
+    target.succeed('/nix/var/nix/profiles/reconfigured/bin/switch-to-configuration switch')
 
     # File content should have changed.
-    machine.succeed('test "$(</etc/foo)" = bar')
-    updated = machine.succeed('readlink -ne /etc/foo')
+    target.succeed('test "$(</etc/foo)" = bar')
+    updated = target.succeed('readlink -ne /etc/foo')
     assert orig != updated
   '';
 })

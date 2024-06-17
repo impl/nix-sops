@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -36,7 +36,6 @@
     boot.loader.timeout = 0;
     boot.loader.grub = {
       enable = true;
-      version = 2;
     };
   };
 

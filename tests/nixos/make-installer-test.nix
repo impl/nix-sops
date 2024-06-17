@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2003-2021 Eelco Dolstra and the Nixpkgs/NixOS contributors
-# SPDX-FileCopyrightText: 2021-2022 Noah Fontes
+# SPDX-FileCopyrightText: 2021-2024 Noah Fontes
 #
 # SPDX-License-Identifier: MIT
 #
@@ -29,7 +29,6 @@ f: args@{ inputs, pkgs, system, ... }: let
           boot.loader.timeout = mkVMOverride 0;
           boot.loader.grub = mkVMOverride {
             enable = true;
-            version = 2;
             device = "/dev/vda";
             configurationName = name;
           };
@@ -60,46 +59,58 @@ f: args@{ inputs, pkgs, system, ... }: let
   {
     inherit name;
 
-    nodes.machine = { lib, modulesPath, ... }: with lib; {
-      imports = [
-        "${modulesPath}/profiles/installation-device.nix"
-        "${modulesPath}/profiles/base.nix"
-      ];
+    nodes = {
+      installer = { lib, modulesPath, ... }: with lib; {
+        imports = [
+          "${modulesPath}/profiles/installation-device.nix"
+          "${modulesPath}/profiles/base.nix"
+        ];
 
-      nix.settings.substituters = mkForce [];
-      nix.extraOptions = ''
-        hashed-mirrors =
-        connect-timeout = 1
-      '';
+        # Installation media sets this, but it just produces warnings in tests.
+        users.users.root.initialHashedPassword = mkForce null;
 
-      virtualisation.diskSize = 8 * 1024;
-      virtualisation.emptyDiskImages = [
-        # Small root disk for installer
-        512
-      ];
-      virtualisation.bootDevice = "/dev/vdb";
-      virtualisation.additionalPaths = attrValues installedSystems;
+        nix.settings.substituters = mkForce [];
+        nix.extraOptions = ''
+          hashed-mirrors =
+          connect-timeout = 1
+        '';
+
+        boot.initrd.systemd.enable = true;
+        testing.initrdBackdoor = false;
+
+        virtualisation.diskSize = 8 * 1024;
+        virtualisation.diskImage = "./target.qcow2";
+        virtualisation.emptyDiskImages = [
+          # Small root disk for installer
+          512
+        ];
+        virtualisation.rootDevice = "/dev/vdb";
+        virtualisation.fileSystems."/".autoFormat = true;
+        virtualisation.additionalPaths = attrValues installedSystems;
+      };
+
+      target = {
+        virtualisation.diskSize = 8 * 1024;
+        virtualisation.diskImage = "./target.qcow2";
+        virtualisation.useBootLoader = true;
+        virtualisation.useDefaultFilesystems = false;
+
+        virtualisation.fileSystems."/" = {
+          device = "/dev/vda2";
+          fsType = "ext4";
+        };
+
+        virtualisation.qemu.options = [
+          "-virtfs local,path=/nix/store,security_model=none,mount_tag=store"
+        ];
+      };
     };
 
     testScript = ''
-      def create_installed_machine(name):
-        new_machine = create_machine({
-          "qemuFlags": " ".join([
-            "-cpu max",
-            "${if system == "x86_64-linux" then "-m 1024" else "-m 768 -enable-kvm -machine virt,gic-version=host"}",
-            "-virtfs local,path=/nix/store,security_model=none,mount_tag=store",
-          ]),
-          "hdaInterface": "virtio",
-          "hda": "vm-state-machine/machine.qcow2",
-          "name": name,
-        })
-        driver.machines.append(new_machine)
-        return new_machine
-
-
       # Bootstrap machine.
-      machine.wait_for_unit('default.target')
-      machine.succeed(
+      installer.start()
+      installer.wait_for_unit('default.target')
+      installer.succeed(
         'flock /dev/vda parted --script /dev/vda -- mklabel msdos mkpart primary linux-swap 1M 1024M mkpart primary ext2 1024M -1s',
         'udevadm settle',
         'mkfs.ext3 -L nixos /dev/vda2',
@@ -113,20 +124,21 @@ f: args@{ inputs, pkgs, system, ... }: let
       ${preInstallScript}
 
       # Install NixOS onto the primary drive.
-      machine.succeed(
+      installer.succeed(
         ${with pkgs.lib; concatStringsSep "\n" (mapAttrsToList (name: installedSystem: ''
           "nix-env --store /mnt --extra-substituters 'auto?trusted=1' -p ${escapeShellArg "/mnt/nix/var/nix/profiles/${name}"} --set ${installedSystem}",
         '') (filterAttrs (name: installedSystem: name != "system") installedSystems))}
       )
-      machine.succeed('nixos-install -vv --root /mnt --system ${installedSystems."system"} --no-root-passwd')
-      machine.succeed('sync')
+      installer.succeed('nixos-install -vv --root /mnt --system ${installedSystems."system"} --no-root-passwd')
+      installer.succeed('sync')
 
       ${postInstallScript}
 
-      machine.shutdown()
+      installer.shutdown()
 
       # Reboot, hope everything activates!
-      machine = create_installed_machine('${name}-installed')
+      target.state_dir = installer.state_dir
+      target.start()
 
       ${testScript}
     '';
